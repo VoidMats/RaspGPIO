@@ -9,8 +9,6 @@
 // Library includes
 #include <bcm2835.h>
 
-using namespace std;
-
 //static int numThreads{0};
 
 /* The main class for controlling the Raspberry Pi with bcm2835 drivers.
@@ -25,16 +23,18 @@ public:
     Raspberry(int model, bool debug);
     ~Raspberry();
 
+    // Function to set the Raspberry
+    void setRPI(std::vector<std::pair<uint8_t, uint8_t>> list);
     // Functions for get/send data
-    void setRPI(vector<pair<uint8_t, uint8_t> > _list);
     void setOutput(uint8_t pin);
+    void setOutputDelay(uint8_t pin, int ms);
     void setOutUntilInput(uint8_t pinOut, uint8_t pinIn);
     void clrOutput(uint8_t pin);
     void writeOutput(uint8_t pin, uint8_t value);
     void writeOutputDelay(uint8_t pin, uint8_t value, int ms);
     uint8_t readInput(uint8_t pin);
     float readTemp(uint8_t pin, char unit, bool &error);
-    float readSecureTemp(uint8_t pin, char unit);
+    float readSecureTemp(uint8_t pin, char unit, int limit=5);
     void delayRPI(int value);
 
 private:
@@ -53,9 +53,9 @@ private:
     int model;
     bool setup;
     bool debug;
-    string errorCode;
-    float secureTemp;                   // Variable that contain the previous Temp mesurement
-    vector<pair<uint8_t, string>> pins;
+    std::string errorCode;
+    std::vector<float> secureTemp; // Contain the previous Temp mesurement
+    std::vector<std::pair<uint8_t, std::string>> pins;
     // Variables for threads
 
 };
