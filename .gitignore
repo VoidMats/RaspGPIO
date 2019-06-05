@@ -69,3 +69,6 @@ Thumbs.db
 # --------
 *.dll
 *.exe
+
+# Visual code
+.vscode/
