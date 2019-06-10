@@ -66,9 +66,9 @@ Thumbs.db
 *.pyc
 
 # Binaries
-# --------
 *.dll
 *.exe
+raspGPIO
 
 # Visual code
 .vscode/

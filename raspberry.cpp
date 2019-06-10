@@ -4,11 +4,14 @@ Raspberry::Raspberry(int model, bool debug)
     :model{model}, setup{false}, debug{debug}, errorCode{""},
     secureTemp{}, pins{}
 {
-    // TODO Need to add a check that the program is running as root
-    // Either if(getuid()) or CAP_SYS_NICE
-    bcm2835_set_debug(debug);
-    if( !bcm2835_init() ) {
-        std::cerr << "bcm2835 drivers can't initiate the Raspberry" << std::endl;
+    if( getuid() == 0) {
+        bcm2835_set_debug(debug);
+        if( !bcm2835_init() ) {
+            std::cerr << "bcm2835 drivers can't initiate the Raspberry" << std::endl;
+        }
+    }
+    else {
+        std::cout << "bcm2835 drivers require that the program is run as sudo" << std::endl;
     }
 }
 
@@ -80,7 +83,6 @@ void Raspberry::setOutput(uint8_t pin)
 }
 
 /* NB! This function is threaded and detached
- *
  *
  */
 void Raspberry::setOutputDelay(uint8_t pin, int ms)
@@ -250,21 +252,19 @@ void Raspberry::threadWriteDelayOutput(uint8_t const& pin,
     }
 }
 
-void Raspberry::threadSetOutUntilInput(const uint8_t &pinOut, const uint8_t &pinIn)
+void Raspberry::threadSetOutUntilInput(uint8_t const& pinOut, uint8_t const& pinIn)
 {
-    bool low{false};
     bcm2835_gpio_set(pinOut);
-    // TODO busy-wait
-    while( low==false) {
+    for(;;) {
         if( bcm2835_gpio_lev(pinIn)==HIGH ) {
-            low = true;
             bcm2835_gpio_clr(pinOut);
+            break;
         }
-        bcm2835_delayMicroseconds(100);
+        bcm2835_delayMicroseconds(TIME_SIGNAL_DELAY);
     }
 }
 
-int Raspberry::presence(const uint8_t &pin)
+int Raspberry::presence(uint8_t const& pin)
 {
     //
     bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_OUTP);

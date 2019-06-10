@@ -1,9 +1,9 @@
 CXX = g++
 CXXFLAGS = -Wall -Wextra -Weffc++ -Wold-style-cast -Woverloaded-virtual -std=c++17 -pedantic -Werror -g
-LIBS = -pthread -lbcm2835
+LIBS = -pthread -lbcm2835 #-L/usr/local/lib/libbcm2835.a
 
 raspGPIO: main.o raspberry.o
-	$(CXX) $(CXXFLAGS) $(LIBS) main.o raspberry.o -o raspGPIO
+	$(CXX) $(CXXFLAGS) main.o raspberry.o $(LIBS) -o raspGPIO
 
 Raspberry.o: raspberry.cpp raspberry.h
 	$(CXX) -c $(CXXFLAGS) $(LIBS) raspberry.cpp -o raspberry.o

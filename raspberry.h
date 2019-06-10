@@ -7,6 +7,7 @@
 #include <iterator>
 #include <string>
 #include <thread>
+#include <unistd.h>
 // Library includes
 #include <bcm2835.h>
 
@@ -14,10 +15,7 @@
 
 /* The main class for controlling the Raspberry Pi with bcm2835 drivers.
  * The bcm2835 drivers has to be installed and compiled with the class.
- *
- *
- *
- * aksjdkajskaskdaksdnaksndkajsdkajsndkjansdknjkjasdknajsd */
+ *   */
 class Raspberry
 {
 public:
@@ -51,8 +49,9 @@ private:
     uint8_t crc8(const uint8_t *data, uint8_t len );
 
     // Constant variable for process
-    const int NUM_TMP_READ = 5;
-    const int TIME_TMP_DELAY = 50;
+    static const int NUM_TMP_READ = 5;
+    static const int TIME_TMP_DELAY = 50;
+    static const int TIME_SIGNAL_DELAY = 100;
     // Variables for the Raspberry Pi
     int model;
     bool setup;
