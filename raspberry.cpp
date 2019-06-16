@@ -30,7 +30,6 @@ Raspberry::~Raspberry()
  * See more information in doxygen for the drivers bcm2835 */
 void Raspberry::setRPI(vector<pair<uint8_t, uint8_t>> _list)
 {
-
     for( vector<pair<uint8_t, uint8_t>>::const_iterator it{_list.begin()};
          it!=_list.end(); ++it ) {
         uint8_t pin = it->first;

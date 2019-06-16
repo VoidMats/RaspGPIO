@@ -15,10 +15,7 @@ using namespace std;
 
 /* The main class for controlling the Raspberry Pi with bcm2835 drivers.
  * The bcm2835 drivers has to be installed and compiled with the class.
- *
- *
- *
- * aksjdkajskaskdaksdnaksndkajsdkajsndkjansdknjkjasdknajsd */
+ *  */
 class Raspberry
 {
 public:
