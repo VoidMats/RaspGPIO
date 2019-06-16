@@ -15,7 +15,7 @@ int main()
 
     uint8_t debug{0};
     uint8_t counter{4};
-    bool error{false};
+    //bool error{false};
     Raspberry test(2, debug);
     vector<pair<uint8_t, uint8_t>> setup;
     setup.push_back(make_pair(4,0));  // Set GPIO4 to input

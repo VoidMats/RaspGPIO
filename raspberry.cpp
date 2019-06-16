@@ -1,16 +1,18 @@
 #include "raspberry.h"
 
 Raspberry::Raspberry(int model, bool debug)
-    :model{model}, debug{debug}
+    :model{model}, setup{false}, debug{debug}, errorCode{""},
+    secureTemp{}, pins{}
 {
-    bcm2835_set_debug(debug);
-    if( !bcm2835_init() ) {
-        cerr << "bcm2835 drivers can't initiate the Raspberry" << endl;
+    if( getuid() == 0) {
+        bcm2835_set_debug(debug);
+        if( !bcm2835_init() ) {
+            std::cerr << "bcm2835 drivers can't initiate the Raspberry" << std::endl;
+        }
     }
-    // TODO Need to add a check that the program is running as root
-    // Ether if(getuid()) or CAP_SYS_NICE
-    secureTemp = -1000;
-    setup = false;
+    else {
+        std::cout << "bcm2835 drivers require that the program is run as sudo" << std::endl;
+    }
 }
 
 /* Doxygen info
@@ -26,25 +28,45 @@ Raspberry::~Raspberry()
  * BCM2835_GPIO_FSEL_OUTP   0x01
  * BCM2835_GPIO_FSEL_ALT0   0x04
  * BCM2835_GPIO_FSEL_ALT1   0x05
+ *
+ * BCM2835_GPIO_FSEL_INPT   0x08 Added by this class to create secure temp
  * ...
  * See more information in doxygen for the drivers bcm2835 */
-void Raspberry::setRPI(vector<pair<uint8_t, uint8_t>> _list)
+void Raspberry::setRPI(std::vector<std::pair<uint8_t, uint8_t>> list)
 {
-    for( vector<pair<uint8_t, uint8_t>>::const_iterator it{_list.begin()};
-         it!=_list.end(); ++it ) {
+    std::vector<std::pair<uint8_t, uint8_t>>::const_iterator it{list.begin()};
+    for( ; it!=list.end(); ++it ) {
         uint8_t pin = it->first;
         uint8_t mode = it->second;
         switch( mode )
         {
         case 0x00:
             bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_INPT);
-            if( debug ) { cout << "Set pin: " << unsigned(pin) << " to INPUT" << endl; }
+            if( debug ) {
+                std::cout << "Set pin: " << unsigned(pin) <<
+                " to INPUT" << std::endl;
+            }
             break;
         case 0x01:
             bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_OUTP);
-            if( debug ) { cout << "Set pin: " << unsigned(pin) << " to OUTPUT" << endl; }
+            if( debug ) {
+                std::cout << "Set pin: " << unsigned(pin) <<
+                " to OUTPUT" << std::endl;
+            }
             break;
         case 0x04:
+            bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_ALT0);
+            break;
+        case 0x05:
+            bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_ALT1);
+            break;
+        case 0x008:
+            bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_INPT);
+            secureTemp[pin] = -1000;
+            if( debug ) {
+                std::cout << "Set pin: " << unsigned(pin) <<
+                " to SECURE TEMP" << std::endl;
+            }
             break;
         default:
             break;
@@ -60,23 +82,36 @@ void Raspberry::setOutput(uint8_t pin)
     bcm2835_gpio_set(pin);
 }
 
-/* NB! This function has to be threaded and detached
- * ex.
- * std::thread t(&Raspberry::setOutputInput, &class, pinOut, pinIn);
- * thread.detach();
+/* NB! This function is threaded and detached
+ *
+ */
+void Raspberry::setOutputDelay(uint8_t pin, int ms)
+{
+    std::thread t(threadWriteDelayOutput, pin, HIGH, ms);
+    t.detach();
+}
+
+/* NB! This function is threaded and detached
+ *
+ *
  */
 void Raspberry::setOutUntilInput(uint8_t pinOut, uint8_t pinIn)
 {
-    //thread t(&Raspberry::threadSetOutUntilInput, this, pinOut, pinIn);
-    //t.detach();
+    std::thread t(threadSetOutUntilInput, pinOut, pinIn);
+    t.detach();
 }
 
 void Raspberry::clrOutput(uint8_t pin)
 {
     bcm2835_gpio_clr(pin);
-    if( debug ) { cout << "Set pin: " << unsigned(pin) << " to LOW" << endl; }
+    if( debug ) {
+        std::cout << "Set pin: " << unsigned(pin) << " to LOW" << std::endl;
+    }
 }
 
+/* This function does not care which state the pin has, it will just
+ * be switched.
+ *   */
 void Raspberry::writeOutput(uint8_t pin, uint8_t value)
 {
     if( value==0 && value==LOW ) {
@@ -88,12 +123,14 @@ void Raspberry::writeOutput(uint8_t pin, uint8_t value)
 }
 
 /* NB! This function is threaded and detached
- *
+ * This function use a thread to switch a pin. The function does not
+ * care which state of the pin it will just be switched. Use setOutputDelay
+ * for forced low/high state.
  */
 void Raspberry::writeOutputDelay(uint8_t pin, uint8_t value, int ms)
 {
-    //thread t(&Raspberry::threadWriteDelayOutput, this, pin, value, ms);
-    //t.detach();
+    std::thread t(threadWriteDelayOutput, pin, value, ms);
+    t.detach();
 }
 
 uint8_t Raspberry::readInput(uint8_t pin)
@@ -101,14 +138,14 @@ uint8_t Raspberry::readInput(uint8_t pin)
     return bcm2835_gpio_lev(pin);
 }
 
-float Raspberry::readTemp(uint8_t pin, char unit, bool &error)
+float Raspberry::readTemp(const uint8_t &pin, char unit, bool &error)
 {
     float returnValue{0};
     error = false;
     if(setup)
     {
         if( presence(pin)==1 ) {
-            cerr << "No device on pin: " << pin << endl;
+            std::cerr << "No device on pin: " << pin << std::endl;
             error = true;
             return -3000;
         }
@@ -123,9 +160,9 @@ float Raspberry::readTemp(uint8_t pin, char unit, bool &error)
         for( i=0; i<9; i++ ) {
             data[i]=readByte(pin);
         }
-        //cout << "Print the collected data" << endl;
+        //std::cout << "Print the collected data" << std::endl;
         //for(const auto &b : data ) {
-        //    cout << (unsigned)b << " " << endl;
+        //    std::cout << (unsigned)b << " " << std::endl;
         //}
         uint8_t crc=crc8(data, 9);  // CRC check
         if( crc!=0 ) {
@@ -135,7 +172,7 @@ float Raspberry::readTemp(uint8_t pin, char unit, bool &error)
         int t1 = data[0];
         int t2 = data[1];
         int16_t temp1 = (t2<<8|t1);   // Put the two bytes into a 16-bit integer
-        float temp = (float)temp1/16; // Recalculate to a floating point - This is in Celcius
+        float temp = static_cast<float>(temp1/16); // This is in Celcius
 
         // Check unit and recalculate if necessary
         if( unit=='C' || unit=='c' ) {
@@ -146,44 +183,49 @@ float Raspberry::readTemp(uint8_t pin, char unit, bool &error)
             returnValue = temp;
         }
         else {
-            cerr << "Raspberry::readTemp() - Wrong unit has been given" << endl;
+            std::cerr << "Raspberry::readTemp() - Wrong unit has been given" << std::endl;
             error = true;
             return -1000;
         }
     }
     else {
-        cerr << "Raspberry GPIO are not set" << endl;
+        std::cerr << "Raspberry GPIO are not set" << std::endl;
         error = true;
         return -1000;
     }
     return returnValue;
 }
 
-float Raspberry::readSecureTemp(uint8_t pin, char unit)
+float Raspberry::readSecureTemp(const uint8_t &pin, char unit, int limit)
 {
-    float rtnValue;
-    bool error{true};
+    float _rtnValue;
+    bool _error{true};
     uint8_t i{0};
-    if( secureTemp == -1000 ) {
-        secureTemp = readTemp(pin, unit, error);
-        error = true;
+    if( secureTemp[pin] == -1000 ) {
+        secureTemp[pin] = readTemp(pin, unit, _error);
+        _error = true;
     }
-    // Check for errors
-    while( error && i<10 ) {
-        rtnValue = readTemp(pin, unit, error);
-        if( error ) { bcm2835_delay(50); cerr << "Found error" << endl; }
+    // Check for errors. Try to read NUM_TMP_READ times
+    while( _error && i<NUM_TMP_READ ) {
+        _rtnValue = readTemp(pin, unit, _error);
+        if( _error ) {
+            bcm2835_delay(TIME_TMP_DELAY);
+            std::cerr << "Found error" << std::endl;
+        }
         i++;
     }
     i = 0;
     // Reading is out of range repeat
-    while( rtnValue>secureTemp+5 || rtnValue<secureTemp-5 ) {
-        rtnValue = readTemp(pin, unit, error);
-        cerr << "Temperature out of range" << endl;
-        if( i>= 10 ) break;
+    while( _rtnValue>(secureTemp[pin] + limit) ||
+           _rtnValue<(secureTemp[pin] - limit) )
+    {
+        _rtnValue = readTemp(pin, unit, _error);
+        std::cerr << "Temperature out of range" << std::endl;
+        if( i>= 5 ) break;
         i++;
     }
-    secureTemp = rtnValue;
-    return rtnValue;
+    secureTemp[pin] = _rtnValue;
+    return _rtnValue;
 }
 
 void Raspberry::delayRPI(int value)
@@ -191,7 +233,8 @@ void Raspberry::delayRPI(int value)
     bcm2835_delay(value);
 }
 
-void Raspberry::threadWriteDelayOutput(uint8_t pin, uint8_t value, int ms)
+void Raspberry::threadWriteDelayOutput(uint8_t const& pin,
+    uint8_t const& value, int ms)
 {
     bool low{false};
     if( value==0 && value==LOW ) {
@@ -204,26 +247,24 @@ void Raspberry::threadWriteDelayOutput(uint8_t pin, uint8_t value, int ms)
     bcm2835_delay(ms);
     if( low==true ) {
         bcm2835_gpio_write(pin, HIGH);
-    }
-    else {
+    } else {
         bcm2835_gpio_write(pin, LOW);
     }
 }
 
-void Raspberry::threadSetOutUntilInput(uint8_t pinOut, uint8_t pinIn)
+void Raspberry::threadSetOutUntilInput(uint8_t const& pinOut, uint8_t const& pinIn)
 {
-    bool low{false};
     bcm2835_gpio_set(pinOut);
-    while( low==false) {
+    for(;;) {
         if( bcm2835_gpio_lev(pinIn)==HIGH ) {
-            low = true;
             bcm2835_gpio_clr(pinOut);
+            break;
         }
-        bcm2835_delayMicroseconds(100);
+        bcm2835_delayMicroseconds(TIME_SIGNAL_DELAY);
     }
 }
 
-int Raspberry::presence(uint8_t pin)
+int Raspberry::presence(uint8_t const& pin)
 {
     //
     bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_OUTP);
@@ -236,10 +277,10 @@ int Raspberry::presence(uint8_t pin)
     return retValue;
 }
 
-void Raspberry::writeBit(uint8_t pin, int b)
+void Raspberry::writeBit(const uint8_t &pin, int bit)
 {
     int delay1, delay2;
-    if(b == 1) {
+    if(bit == 1) {
         delay1 = 6;
         delay2 = 64;
     } else {
@@ -253,45 +294,45 @@ void Raspberry::writeBit(uint8_t pin, int b)
     bcm2835_delayMicroseconds(delay2);
 }
 
-void Raspberry::writeByte(uint8_t _pin, int _byte)
+void Raspberry::writeByte(const uint8_t &pin, int byte)
 {
     for(int i = 0; i<8; i++) {
-        if(_byte & 1) {
-            writeBit(_pin,1);
+        if(byte & 1) {
+            writeBit(pin,1);
         }
         else {
-            writeBit(_pin,0);
+            writeBit(pin,0);
         }
-        _byte = _byte >> 1;
+        byte = byte >> 1;
     }
 }
 
-uint8_t Raspberry::readBit(uint8_t _pin)
+uint8_t Raspberry::readBit(const uint8_t &pin)
 {
-    bcm2835_gpio_fsel(_pin, BCM2835_GPIO_FSEL_OUTP);
-    bcm2835_gpio_write(_pin, LOW);
+    bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_OUTP);
+    bcm2835_gpio_write(pin, LOW);
     bcm2835_delayMicroseconds(6);
-    bcm2835_gpio_fsel(_pin, BCM2835_GPIO_FSEL_INPT);
+    bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_INPT);
     bcm2835_delayMicroseconds(8);
-    uint8_t retValue = bcm2835_gpio_lev(_pin);
+    uint8_t retValue = bcm2835_gpio_lev(pin);
     bcm2835_delayMicroseconds(55);
     return retValue;
 }
 
-int Raspberry::readByte(uint8_t _pin)
+int Raspberry::readByte(const uint8_t &pin)
 {
     int byte = 0;
     int i;
     for (i=0; i<8; i++) {
-        byte = byte | readBit(_pin) << i;
+        byte = byte | readBit(pin) << i;
     };
     return byte;
 }
 
-int Raspberry::convert(uint8_t pin)
+int Raspberry::convert(const uint8_t &pin)
 {
     int i;
-    writeByte( pin, 0x44);
+    writeByte(pin, 0x44);
     for( i=0; i<1000; i++ ) {
         bcm2835_delayMicroseconds(100000);
         if( readBit(pin)==1 )
@@ -302,10 +343,7 @@ int Raspberry::convert(uint8_t pin)
 
 uint8_t Raspberry::crc8(const uint8_t *data, uint8_t len)
 {
-    uint8_t i;
-    uint8_t j;
-    uint8_t temp;
-    uint8_t databyte;
+    uint8_t i, j, temp, databyte;
 
     uint8_t crc = 0;
     for( i = 0; i < len; i++) {
