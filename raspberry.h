@@ -11,11 +11,35 @@
 // Library includes
 #include <bcm2835.h>
 
-//static int numThreads{0};
+enum PinMode
+{
+    INPUT = 0,
+    OUTPUT = 1
+};
+
+enum PinNumber
+{
+    GPIO01 = 1,
+    GPIO02 = 2,
+    GPIO03 = 3,
+    GPIO04 = 4,
+};
+
+enum Model
+{
+    RASPBERRY_1 = 1,
+    RASPBERRY_2A = 2,
+    RASPBERRY_2B = 3,
+    RASPBERRY_3 = 4
+};
 
 /* The main class for controlling the Raspberry Pi with bcm2835 drivers.
  * The bcm2835 drivers has to be installed and compiled with the class.
- *   */
+ * Before the class can be used a setup has to be performed telling the
+ * class which pins will be used.
+ * 
+ * Setup:  
+ *      vector<pair<pin,type>> */
 class Raspberry
 {
 public:
@@ -32,8 +56,8 @@ public:
     void writeOutput(uint8_t pin, uint8_t value);
     void writeOutputDelay(uint8_t pin, uint8_t value, int ms);
     uint8_t readInput(uint8_t pin);
-    float readTemp(const uint8_t &pin, char unit, bool &error);
-    float readSecureTemp(const uint8_t &pin, char unit, int limit=5);
+    float readTemp(const uint8_t& pin, char unit, bool& error);
+    float readSecureTemp(const uint8_t& pin, char unit, int limit=5);
     void delayRPI(int value);
 
 private:
