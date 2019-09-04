@@ -9,16 +9,12 @@
 #include <bcm2835.h>
 
 using namespace std;
-std::vector<pair<uint8_t, uint8_t>> setupGPIO();
 
 int main()
 {
     std::cout << "Server tester" << std::endl;
     const std::string raspberry_name{"test"};
-    std::shared_ptr<Raspberry> ptr_GPIO;
-    auto setup = setupGPIO();
-    ptr_GPIO->setRPI(setup);
-    RaspberryServer server(raspberry_name, ptr_GPIO);
+    RaspberryServer server(raspberry_name, 2, "setup.txt", true, true);
 
     try {
         server.start(5050);
@@ -63,13 +59,3 @@ int main()
     return 0;
 }
 
-std::vector<pair<uint8_t, uint8_t>> setupGPIO()
-{
-    std::vector<pair<uint8_t, uint8_t>> setup;
-    setup.push_back(make_pair(4,0));  // Set GPIO4 to input
-    setup.push_back(make_pair(17,1)); // set GPIO17 to output
-    setup.push_back(make_pair(22,1)); // Set GPIO22 to output
-    setup.push_back(make_pair(23,1)); // Set GPIO23 to output
-    setup.push_back(make_pair(18,0)); // Set GPIO18 to input
-    return setup;
-}

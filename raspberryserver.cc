@@ -8,11 +8,12 @@ const std::unordered_map<std::string, COMMANDS> cmd_map = {
     {"READ_S_TEMP", COMMANDS::READ_S_TEMP}    
 };
 
-RaspberryServer::RaspberryServer(const std::string& name, int model,
-    bool debug_server = false, bool debug_gpio = false):
-    _socket_fd{0}, _server_addr{}, _server_name{name}, _debug{debug_server} 
+RaspberryServer::RaspberryServer(const std::string& name, int model, std::string file,
+    bool debug_server, bool debug_gpio):
+    _debug{debug_server}, _file_name{file}, _server_name{name},
+    _ptr_gpio{std::make_shared<Raspberry>(model, debug_gpio)}
 {
-    _ptr_gpio = std::make_shared<Raspberry>(model, debug_gpio);
+    
 }
 
 RaspberryServer::~RaspberryServer()
@@ -33,6 +34,9 @@ RaspberryServer::~RaspberryServer()
 */
 void RaspberryServer::start(const int& port)
 {
+    // Read setup file and configure the Raspberry Pi
+    readSetup(_file_name);
+
     _socket_fd = 0;
 
     // *** Create socket ***
@@ -88,8 +92,6 @@ void RaspberryServer::start(const int& port)
                 std::thread t(new_client);
                 t.detach();
             }
-            if (_close)
-                break;
         }
         // *** Closing server connection ***
         close(_socket_fd);
@@ -101,7 +103,35 @@ void RaspberryServer::closeConnection()
     close(_socket_fd);
 }
 
-void RaspberryServer::readSetup()
+void RaspberryServer::readSetup(std::string file_name)
 {
-    std::ifstream inFile("setup.txt");
+    std::vector<std::pair<uint8_t, uint8_t>> setup;
+    // Open file and read content
+    std::ifstream file(file_name);
+    if (file.is_open()) {
+        int line_no{1};
+        std::string line;
+        while (getline(file, line)) {
+            std::istringstream is(line);
+            int pin, mode;
+            if (!(is >> mode >> pin)) { 
+                std::string msg{"RaspberryServer::readSetup - Parse error on line "};
+                msg += std::to_string(line_no);
+                throw ServerException(msg);
+            }
+            setup.push_back(std::make_pair(pin, mode));  
+            if (_debug) 
+                std::cout << "parse line: " << std::to_string(line_no) << " - " 
+                << std::to_string(pin) << " " << std::to_string(mode) << std::endl;
+            //static_cast<std::underlying_type<PINMODE>::type>(mode)
+            line_no++;
+        }
+    }
+    else {
+        std::string msg{"RaspberryServer::readSetup - Can't open file " + file_name};
+        throw ServerException(msg);
+    }
+    file.close();
+    // Set input values to Raspberry class
+    _ptr_gpio->setRPI(setup);
 }

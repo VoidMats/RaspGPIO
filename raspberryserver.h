@@ -177,7 +177,7 @@ private:
 class RaspberryServer
 {
 public:
-    RaspberryServer(const std::string& name, int model, 
+    RaspberryServer(const std::string& name, int model, std::string file, 
         bool debug_server = false, bool debug_gpio = false);
     ~RaspberryServer();
 
@@ -185,16 +185,16 @@ public:
     void closeConnection();
 
 private:
-    void readSetup();
+    void readSetup(std::string file_name);
 
     // Variables used for connection
     const int _backlog{5};
-    int _socket_fd;
-    bool _close{false};
-    struct sockaddr_in _server_addr;
-    // Variables used for GPIO
-    std::string _server_name;
+    int _socket_fd{0};
+    struct sockaddr_in _server_addr{};
     bool _debug;
+    // Variables used for GPIO
+    std::string _file_name;
+    std::string _server_name;
     std::shared_ptr<Raspberry> _ptr_gpio;
 };
 

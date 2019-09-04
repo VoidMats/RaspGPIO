@@ -60,7 +60,7 @@ void Raspberry::setRPI(std::vector<std::pair<uint8_t, uint8_t>> list)
         case 0x05:
             bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_ALT1);
             break;
-        case 0x008:
+        case 0x08:
             bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_INPT);
             secureTemp[pin] = -1000;
             if( debug ) {

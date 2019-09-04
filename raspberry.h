@@ -11,13 +11,14 @@
 // Library includes
 #include <bcm2835.h>
 
-enum PinMode
+enum PINMODE
 {
     INPUT = 0,
-    OUTPUT = 1
+    OUTPUT = 1, 
+    SECURE_TEMP = 2
 };
 
-enum PinNumber
+enum PIN_NUMBER
 {
     GPIO01 = 1,
     GPIO02 = 2,
@@ -25,7 +26,7 @@ enum PinNumber
     GPIO04 = 4,
 };
 
-enum Model
+enum MODEL
 {
     RASPBERRY_1 = 1,
     RASPBERRY_2A = 2,
