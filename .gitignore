@@ -69,6 +69,8 @@ Thumbs.db
 *.dll
 *.exe
 raspGPIO
+client
+a.out
 
 # Visual code
 .vscode/
