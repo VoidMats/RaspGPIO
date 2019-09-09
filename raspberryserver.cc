@@ -1,16 +1,11 @@
 #include "raspberryserver.h"
 
-const std::unordered_map<std::string, COMMANDS> cmd_map = {
-    {"SET_OUTPUT", COMMANDS::SET_OUTPUT},
-    {"CLR_OUTPUT", COMMANDS::CLR_OUTPUT},
-    {"READ_INPUT", COMMANDS::READ_INPUT},
-    {"READ_TEMP", COMMANDS::READ_TEMP},    
-    {"READ_S_TEMP", COMMANDS::READ_S_TEMP}    
-};
 
 RaspberryServer::RaspberryServer(const std::string& name, int model, std::string file,
     bool debug_server, bool debug_gpio):
-    _debug{debug_server}, _file_name{file}, _server_name{name},
+    _debug{debug_server}, 
+    _file_name{file}, 
+    _server_name{name},
     _ptr_gpio{std::make_shared<Raspberry>(model, debug_gpio)}
 {
     
