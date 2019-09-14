@@ -44,8 +44,11 @@ private:
 class RaspberryServer
 {
 public:
-    RaspberryServer(const std::string& name, int model, std::string file, 
-        bool debug_server = false, bool debug_gpio = false);
+    RaspberryServer(const std::string& name, 
+        int model, 
+        std::string file, 
+        bool debug_server=false, 
+        bool debug_gpio=false);
     ~RaspberryServer();
 
     void start(const int& port);

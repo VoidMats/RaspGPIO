@@ -83,7 +83,7 @@ void Raspberry::setOutput(uint8_t pin)
 }
 
 /* NB! This function is threaded and detached
- *
+ * This is not finsihed. What if anoter command is called when this thread is running!!!!!
  */
 void Raspberry::setOutputDelay(uint8_t pin, int ms)
 {
@@ -105,7 +105,7 @@ void Raspberry::clrOutput(uint8_t pin)
 {
     bcm2835_gpio_clr(pin);
     if( debug ) {
-        std::cout << "Set pin: " << unsigned(pin) << " to LOW" << std::endl;
+        std::cout << "bcm2835_gpio:Set pin: " << unsigned(pin) << " to LOW" << std::endl;
     }
 }
 

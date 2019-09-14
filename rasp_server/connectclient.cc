@@ -36,6 +36,7 @@ void ConnectedClient::operator()() const
             std::cout << "[" << word << "]";
             recv_split.push_back(word);
         }
+        std::cout << std::endl; // only for nice print
         //std::vector<std::string> recv_split = getSplitResult(recv);
         std::string cmd = recv_split.at(0);
         std::string name = recv_split.at(1);
@@ -58,7 +59,9 @@ void ConnectedClient::operator()() const
             case COMMANDS::CLR_OUTPUT:
             {
                 os << "CLR_OUTPUT:" + _name + ":" << std::to_string(pin);
+                _mutex_gpio.lock();
                 _ptr_gpio->clrOutput(pin);
+                _mutex_gpio.unlock();
                 os << ":OK";
                 answer = os.str();
                 break;
@@ -90,7 +93,7 @@ void ConnectedClient::operator()() const
             }
             case COMMANDS::READ_S_TEMP:
             {
-                os << "READ_S_TEMP:" << _name << std::to_string(pin);
+                os << "READ_S_TEMP:" + _name + ":" << std::to_string(pin);
                 _mutex_gpio.lock();
                 float value = _ptr_gpio->readSecureTemp(pin, 'C');
                 _mutex_gpio.unlock();

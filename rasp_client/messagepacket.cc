@@ -213,6 +213,7 @@ bool MessagePacket::readSecureTemp(uint8_t pin, float& result)
         std::cerr << "Client: Error code from device: " << recv_split.at(2) << std::endl;
         rtn_result = false;
     } else */
+    // hmm maybe this has to be in a try-catch block
     result = std::stof(recv_split.at(4));
 
     if (recv_split.at(5).compare("OK") != 0) {

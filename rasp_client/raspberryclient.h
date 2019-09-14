@@ -12,6 +12,9 @@
 // My includes
 #include "messagepacket.h"
 
+/* This create a client which can talk to the RaspberryServer. 
+ * At construction of the object port and host addess has to be given.
+ * Connection is established by using the function connectToServer(). */
 class RaspberryClient
 {
 public:

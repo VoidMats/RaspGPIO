@@ -1,8 +1,11 @@
 #include "raspberryserver.h"
 
 
-RaspberryServer::RaspberryServer(const std::string& name, int model, std::string file,
-    bool debug_server, bool debug_gpio):
+RaspberryServer::RaspberryServer(
+    const std::string& name, 
+    int model, std::string file,
+    bool debug_server, 
+    bool debug_gpio):
     _debug{debug_server}, 
     _file_name{file}, 
     _server_name{name},
@@ -69,7 +72,6 @@ void RaspberryServer::start(const int& port)
         // int accept( int socket , struct sockaddr* restrict address, socklen_t* restrict address_len)
 
         std::cout << "Listening to port: " << port << "....." << std::endl;
-        // TODO add a proper stop instead of for(;;)
         for (;;) 
         {
             struct sockaddr_in _client_addr;
