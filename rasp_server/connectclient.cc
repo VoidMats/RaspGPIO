@@ -10,7 +10,6 @@ const std::unordered_map<std::string, COMMANDS> cmd_map = {
 
 void ConnectedClient::operator()() const
 {
-    // TODO add lock to raspberry
     std::cout << "Server::Thread has started - id: " << std::this_thread::get_id() << std::endl;
     //char data;
     //recv(_socket, &data,1, MSG_PEEK);
@@ -49,7 +48,9 @@ void ConnectedClient::operator()() const
             case COMMANDS::SET_OUTPUT:
             {
                 os << "SET_OUTPUT:" + _name + ":" << std::to_string(pin);
+                _mutex_gpio.lock();
                 _ptr_gpio->setOutput(pin);
+                _mutex_gpio.unlock();
                 os << ":OK";
                 answer = os.str();
                 break;
@@ -66,7 +67,9 @@ void ConnectedClient::operator()() const
             {
                 os << "READ_INPUT:" + _name + ":" << std::to_string(pin);
                 //answer = "READ_INPUT:" + _name + ":" + std::to_string(pin);
+                _mutex_gpio.lock();
                 uint8_t value = _ptr_gpio->readInput(pin);
+                _mutex_gpio.unlock();
                 os << ":" << std::to_string(value) << ":OK";
                 answer = os.str();
                 break;
@@ -75,7 +78,9 @@ void ConnectedClient::operator()() const
             {
                 os << "READ_TEMP:" + _name + ":" << std::to_string(pin);
                 bool error{false};
+                _mutex_gpio.lock();
                 float value = _ptr_gpio->readTemp(pin, 'C', error);
+                _mutex_gpio.unlock();
                 if (!error) 
                     os << ":C:-257.14:ERROR";
                 else 
@@ -86,7 +91,9 @@ void ConnectedClient::operator()() const
             case COMMANDS::READ_S_TEMP:
             {
                 os << "READ_S_TEMP:" << _name << std::to_string(pin);
+                _mutex_gpio.lock();
                 float value = _ptr_gpio->readSecureTemp(pin, 'C');
+                _mutex_gpio.unlock();
                 os << ":C:" << std::to_string(value) << ":OK";
                 answer = os.str();
                 break;
@@ -101,13 +108,18 @@ void ConnectedClient::operator()() const
         write(_socket, answer.c_str(), answer.length());
         std::cout << "Server answer: " << answer << std::endl;
 
+        // We are done.... let other threads run
+        std::this_thread::yield();
+
         // Give some time for client to recive msg
         //std::this_thread::sleep_for(1s);
 
         // We are done with this command clean_up
         delete[] buffer;
     }
-    
+
+    // Clean_up of the call
+    std::lock_guard<std::mutex> lock(_mutex_gpio); // destructor
     close(_socket);  // make sure the connection is closed, even if the client is primary source of closing
     std::cout << "Thread will die - id: " << std::this_thread::get_id() << std::endl;
 }

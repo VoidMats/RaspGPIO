@@ -6,7 +6,8 @@ RaspberryServer::RaspberryServer(const std::string& name, int model, std::string
     _debug{debug_server}, 
     _file_name{file}, 
     _server_name{name},
-    _ptr_gpio{std::make_shared<Raspberry>(model, debug_gpio)}
+    _ptr_gpio{std::make_shared<Raspberry>(model, debug_gpio)},
+    _mutex_gpio{}
 {
     
 }
@@ -83,7 +84,7 @@ void RaspberryServer::start(const int& port)
             }
             else {
                 std::cout << "create connection with client..." << std::endl;
-                ConnectedClient new_client{new_socket_fd, _ptr_gpio, _server_name};
+                ConnectedClient new_client{new_socket_fd, _ptr_gpio, ref(_mutex_gpio),_server_name};
                 std::thread t(new_client);
                 t.detach();
             }

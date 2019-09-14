@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 #include <thread>
+#include <mutex>
 #include <chrono>
 #include <memory>
 #include <regex>
@@ -62,6 +63,7 @@ private:
     std::string _file_name;
     std::string _server_name;
     std::shared_ptr<Raspberry> _ptr_gpio;
+    std::mutex _mutex_gpio;
 };
 
 #endif //RASPBERRYSERVER_H

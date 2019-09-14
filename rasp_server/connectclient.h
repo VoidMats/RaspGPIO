@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 #include <thread>
+#include <mutex>
 #include <unordered_map>
 #include <sstream>
 // My includes
@@ -32,8 +33,11 @@ extern const std::unordered_map<std::string, COMMANDS> cmd_map;
 class ConnectedClient
 {
 public:
-    ConnectedClient(int socket, std::shared_ptr<Raspberry> ptr, const std::string& name):
-        _socket{socket}, _ptr_gpio{ptr}, _name{name} {}
+    ConnectedClient(int socket, 
+        std::shared_ptr<Raspberry> ptr,
+        std::mutex& mutex_gpio,
+        const std::string& name):
+        _socket{socket}, _ptr_gpio{ptr}, _mutex_gpio{mutex_gpio}, _name{name} {}
 
     void operator()() const;
     
@@ -43,6 +47,7 @@ private:
     const int _MAX_BUFFER{1024};
     const int _socket;
     std::shared_ptr<Raspberry> _ptr_gpio;
+    std::mutex& _mutex_gpio;
     const std::string _name;
 };
 
