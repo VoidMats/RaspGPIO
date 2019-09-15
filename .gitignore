@@ -68,9 +68,11 @@ Thumbs.db
 # Binaries
 *.dll
 *.exe
-raspGPIO
-client
-a.out
+**raspGPIO
+**client
+**a.out
+**rasp_server
+**rasp_client
 
 # Visual code
 .vscode/
