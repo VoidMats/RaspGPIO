@@ -1,6 +1,14 @@
+# Makefile for RaspberryServer
+
 CXX = g++
 CXXFLAGS = -Wall -Wextra -Weffc++ -Wold-style-cast -Woverloaded-virtual -std=c++17 -pedantic -Werror -g
 LIBS = -pthread -lbcm2835 #-L/usr/local/lib/libbcm2835.a
+
+all: rasp_server
+
+install: rasp_server
+	@echo "Recv directory: $(INSTALL_DIR)"
+	mv rasp_server ${INSTALL_DIR}
 
 rasp_server: main_server.o raspberry.o raspberryserver.o connectclient.o
 	$(CXX) $(CXXFLAGS) main_server.o raspberry.o raspberryserver.o connectclient.o $(LIBS) -o rasp_server
@@ -18,6 +26,6 @@ main_server.o: main_server.cpp raspberry.h raspberryserver.h connectclient.h
 	$(CXX) -c $(CXXFLAGS) $(LIBS) main_server.cpp -o main_server.o
 
 clean:
-	rm main_server.o Raspberry.o raspberryserver.o connectclient.o rasp_server
+	rm -f main_server.o raspberry.o raspberryserver.o connectclient.o rasp_server
 
 .PHONY: clean
