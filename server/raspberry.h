@@ -7,6 +7,8 @@
 #include <iterator>
 #include <string>
 #include <thread>
+#include <mutex>
+#include <memory>
 #include <unistd.h>
 // Library includes
 #include <bcm2835.h>
@@ -63,14 +65,21 @@ public:
 
 private:
     // Functions for the Raspberry Pi
-    static void threadWriteDelayOutput(uint8_t const& pin, uint8_t const& value, int ms);
-    static void threadSetOutUntilInput(uint8_t const& pinOut, uint8_t const& pinIn);
-    int presence(const uint8_t &pin );
-    void writeBit(const uint8_t &pin, int bit);
-    void writeByte(const uint8_t &pin, int byte);
-    uint8_t readBit(const uint8_t &pin );
-    int readByte(const uint8_t &pin );
-    int convert(const uint8_t &pin );
+    static void threadWriteDelayOutput(
+        const uint8_t& pin, 
+        const uint8_t& value,
+        int ms,
+        std::shared_ptr<std::vector<bool>> ptr);
+    static void threadSetOutUntilInput(
+        const uint8_t& pinOut, 
+        const uint8_t& pinIn, 
+        std::shared_ptr<std::vector<bool>> ptr);
+    int presence(const uint8_t& pin );
+    void writeBit(const uint8_t& pin, int bit);
+    void writeByte(const uint8_t& pin, int byte);
+    uint8_t readBit(const uint8_t& pin );
+    int readByte(const uint8_t& pin );
+    int convert(const uint8_t& pin );
     uint8_t crc8(const uint8_t *data, uint8_t len );
 
     // Constant variable for process
@@ -85,6 +94,8 @@ private:
     std::map<int, float> secureTemp; // Contain the previous Temp mesurement
     std::vector<std::pair<uint8_t, std::string>> pins;
     // Variables for threads
+    std::shared_ptr<std::vector<bool>> _ptr_lock; 
+    std::mutex _mutex_lock;
 
 };
 

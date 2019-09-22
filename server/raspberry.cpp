@@ -2,8 +2,9 @@
 
 Raspberry::Raspberry(int model, bool debug)
     :model{model}, setup{false}, debug{debug}, errorCode{""},
-    secureTemp{}, pins{}
+    secureTemp{}, pins{}, _ptr_lock{}, _mutex_lock{}
 {
+    _ptr_lock = std::make_shared<std::vector<bool>>(std::vector<bool>(52, true));
     if( getuid() == 0) {
         bcm2835_set_debug(debug);
         if( !bcm2835_init() ) {
@@ -34,10 +35,11 @@ Raspberry::~Raspberry()
  * See more information in doxygen for the drivers bcm2835 */
 void Raspberry::setRPI(std::vector<std::pair<uint8_t, uint8_t>> list)
 {
-    std::vector<std::pair<uint8_t, uint8_t>>::const_iterator it{list.begin()};
-    for( ; it!=list.end(); ++it ) {
-        uint8_t pin = it->first;
-        uint8_t mode = it->second;
+    // Set Raspberry PI according to setup_vector 
+    std::vector<std::pair<uint8_t, uint8_t>>::const_iterator it_setup{list.begin()};
+    for( ; it_setup!=list.end(); ++it_setup ) {
+        uint8_t pin = it_setup->first;
+        uint8_t mode = it_setup->second;
         switch( mode )
         {
         case 0x00:
@@ -72,8 +74,14 @@ void Raspberry::setRPI(std::vector<std::pair<uint8_t, uint8_t>> list)
             break;
         }
         //bcm2835_gpio_fsel(pin, mode);
-
     }
+
+    // Set lock on pins to true
+    std::vector<bool>::iterator it_lock{_ptr_lock->begin()};
+    for( ; it_lock!=_ptr_lock->end(); ++it_setup ) {
+        *it_lock = false;
+    }
+    // We are done set setup bool to true
     setup = true;
 }
 
@@ -83,22 +91,26 @@ void Raspberry::setOutput(uint8_t pin)
 }
 
 /* NB! This function is threaded and detached
- * This is not finsihed. What if anoter command is called when this thread is running!!!!!
+ * 
  */
 void Raspberry::setOutputDelay(uint8_t pin, int ms)
 {
-    std::thread t(threadWriteDelayOutput, pin, HIGH, ms);
-    t.detach();
+    if( !_ptr_lock->at(pin) ) {
+        std::thread t(threadWriteDelayOutput, pin, HIGH, ms, _ptr_lock);
+        t.detach();
+        _ptr_lock->operator[](pin) = true;
+    }
+    
 }
 
-/* NB! This function is threaded and detached
- *
- *
- */
+/* NB! This function is threaded and detached  */
 void Raspberry::setOutUntilInput(uint8_t pinOut, uint8_t pinIn)
 {
-    std::thread t(threadSetOutUntilInput, pinOut, pinIn);
-    t.detach();
+    if( !_ptr_lock->at(pinOut) ) {
+        std::thread t(threadSetOutUntilInput, pinOut, pinIn, _ptr_lock);
+        t.detach();
+        _ptr_lock->operator[](pinOut) = true;        
+    }
 }
 
 void Raspberry::clrOutput(uint8_t pin)
@@ -129,8 +141,11 @@ void Raspberry::writeOutput(uint8_t pin, uint8_t value)
  */
 void Raspberry::writeOutputDelay(uint8_t pin, uint8_t value, int ms)
 {
-    std::thread t(threadWriteDelayOutput, pin, value, ms);
-    t.detach();
+    if( !_ptr_lock->at(pin) ) { 
+        std::thread t(threadWriteDelayOutput, pin, value, ms, _ptr_lock);
+        t.detach();
+        _ptr_lock->operator[](pin) = true;
+    }
 }
 
 uint8_t Raspberry::readInput(uint8_t pin)
@@ -233,8 +248,11 @@ void Raspberry::delayRPI(int value)
     bcm2835_delay(value);
 }
 
-void Raspberry::threadWriteDelayOutput(uint8_t const& pin,
-    uint8_t const& value, int ms)
+void Raspberry::threadWriteDelayOutput(
+    const uint8_t& pin,
+    const uint8_t& value, 
+    int ms, 
+    std::shared_ptr<std::vector<bool>> ptr)
 {
     bool low{false};
     if( value==0 && value==LOW ) {
@@ -250,9 +268,13 @@ void Raspberry::threadWriteDelayOutput(uint8_t const& pin,
     } else {
         bcm2835_gpio_write(pin, LOW);
     }
+    ptr->operator[](pin) = false;
 }
 
-void Raspberry::threadSetOutUntilInput(uint8_t const& pinOut, uint8_t const& pinIn)
+void Raspberry::threadSetOutUntilInput(
+    const uint8_t& pinOut, 
+    const uint8_t& pinIn, 
+    std::shared_ptr<std::vector<bool>> ptr)
 {
     bcm2835_gpio_set(pinOut);
     for(;;) {
@@ -261,7 +283,9 @@ void Raspberry::threadSetOutUntilInput(uint8_t const& pinOut, uint8_t const& pin
             break;
         }
         bcm2835_delayMicroseconds(TIME_SIGNAL_DELAY);
+        
     }
+    ptr->operator[](pinOut) = false;
 }
 
 int Raspberry::presence(uint8_t const& pin)
