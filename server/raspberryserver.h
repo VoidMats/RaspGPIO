@@ -44,7 +44,8 @@ private:
 class RaspberryServer
 {
 public:
-    RaspberryServer(const std::string& name, 
+    RaspberryServer(
+        const std::string& name, 
         int model, 
         std::string file, 
         bool debug_server=false, 
@@ -61,7 +62,8 @@ private:
     const int _backlog{5};
     int _socket_fd{0};
     struct sockaddr_in _server_addr{};
-    bool _debug;
+    bool _debugServer;
+    bool _debugGPIO;
     // Variables used for GPIO
     std::string _file_name;
     std::string _server_name;

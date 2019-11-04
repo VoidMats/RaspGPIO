@@ -16,8 +16,21 @@
 enum PINMODE
 {
     INPUT = 0,
-    OUTPUT = 1, 
-    SECURE_TEMP = 2
+    OUTPUT = 1,
+    TEMP = 2,
+    SECURE_TEMP = 3,
+    ANALOG_ALT0 = 4,
+    ANALOG_ALT1 = 5
+};
+
+const std::string PRINTMODE[] = 
+{
+    "INPUT", 
+    "OUTPUT", 
+    "TEMP", 
+    "SECURE_TEMP", 
+    "ANALOG_ALT0", 
+    "ANALOG_ALT1"
 };
 
 enum PIN_NUMBER
@@ -42,7 +55,7 @@ enum MODEL
  * class which pins will be used.
  * 
  * Setup:  
- *      vector<pair<pin,type>> */
+ *      vector<pair<pin, mode>> */
 class Raspberry
 {
 public:
@@ -50,7 +63,7 @@ public:
     ~Raspberry();
 
     // Function to set the Raspberry
-    void setRPI(std::vector<std::pair<uint8_t, uint8_t>> list);
+    void setRPI(std::vector<std::pair<uint8_t, PINMODE>> list);
     // Functions for get/send data
     void setOutput(uint8_t pin);
     void setOutputDelay(uint8_t pin, int ms);

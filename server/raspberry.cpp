@@ -1,7 +1,7 @@
 #include "raspberry.h"
 
-Raspberry::Raspberry(int model, bool debug)
-    :model{model}, setup{false}, debug{debug}, errorCode{""},
+Raspberry::Raspberry(int model, bool debug): 
+    model{model}, setup{false}, debug{debug}, errorCode{""},
     secureTemp{}, pins{}, _ptr_lock{}, _mutex_lock{}
 {
     _ptr_lock = std::make_shared<std::vector<bool>>(std::vector<bool>(52, true));
@@ -33,52 +33,48 @@ Raspberry::~Raspberry()
  * BCM2835_GPIO_FSEL_INPT   0x08 Added by this class to create secure temp
  * ...
  * See more information in doxygen for the drivers bcm2835 */
-void Raspberry::setRPI(std::vector<std::pair<uint8_t, uint8_t>> list)
+void Raspberry::setRPI(std::vector<std::pair<uint8_t, PINMODE>> list)
 {
+    if( debug ) {
+        std::cout << "Raspberry::setRPI - Setup Raspberry Pi according to file" << std::endl;
+    }
     // Set Raspberry PI according to setup_vector 
-    std::vector<std::pair<uint8_t, uint8_t>>::const_iterator it_setup{list.begin()};
+    std::vector<std::pair<uint8_t, PINMODE>>::const_iterator it_setup{list.begin()};
     for( ; it_setup!=list.end(); ++it_setup ) {
         uint8_t pin = it_setup->first;
-        uint8_t mode = it_setup->second;
+        PINMODE mode = it_setup->second;
+        std::cout << unsigned(pin) << " " << PRINTMODE[mode] << std::endl;
         switch( mode )
         {
-        case 0x00:
+        case PINMODE::INPUT:
             bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_INPT);
-            if( debug ) {
-                std::cout << "Set pin: " << unsigned(pin) <<
-                " to INPUT" << std::endl;
-            }
+            if( debug ) {std::cout << "Set pin: " << pin << " to INPUT" << std::endl; }
             break;
-        case 0x01:
+        case PINMODE::OUTPUT:
             bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_OUTP);
-            if( debug ) {
-                std::cout << "Set pin: " << unsigned(pin) <<
-                " to OUTPUT" << std::endl;
-            }
+            if( debug ) {std::cout << "Set pin: " << pin << " to OUTPUT" << std::endl; }
             break;
-        case 0x04:
-            bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_ALT0);
+        case PINMODE::TEMP:
+            bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_INPT);
             break;
-        case 0x05:
-            bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_ALT1);
-            break;
-        case 0x08:
+        case PINMODE::SECURE_TEMP:
             bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_INPT);
             secureTemp[pin] = -1000;
-            if( debug ) {
-                std::cout << "Set pin: " << unsigned(pin) <<
-                " to SECURE TEMP" << std::endl;
-            }
+            break;
+        case PINMODE::ANALOG_ALT0:
+            bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_ALT0);
+            break;
+        case PINMODE::ANALOG_ALT1:
+            bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_ALT1);
             break;
         default:
             break;
         }
-        //bcm2835_gpio_fsel(pin, mode);
     }
 
     // Set lock on pins to true
     std::vector<bool>::iterator it_lock{_ptr_lock->begin()};
-    for( ; it_lock!=_ptr_lock->end(); ++it_setup ) {
+    for( ; it_lock!=_ptr_lock->end(); ++it_lock ) {
         *it_lock = false;
     }
     // We are done set setup bool to true
@@ -88,6 +84,10 @@ void Raspberry::setRPI(std::vector<std::pair<uint8_t, uint8_t>> list)
 void Raspberry::setOutput(uint8_t pin)
 {
     bcm2835_gpio_set(pin);
+    std::cout << "bcm2835_gpio:Set pin: " << unsigned(pin) << " to HIGH" << std::endl;
+    if( debug ) {
+        std::cout << "bcm2835_gpio:Set pin: " << unsigned(pin) << " to HIGH" << std::endl;
+    }
 }
 
 /* NB! This function is threaded and detached
@@ -116,6 +116,7 @@ void Raspberry::setOutUntilInput(uint8_t pinOut, uint8_t pinIn)
 void Raspberry::clrOutput(uint8_t pin)
 {
     bcm2835_gpio_clr(pin);
+    std::cout << "bcm2835_gpio:Set pin: " << unsigned(pin) << " to LOW" << std::endl;
     if( debug ) {
         std::cout << "bcm2835_gpio:Set pin: " << unsigned(pin) << " to LOW" << std::endl;
     }
@@ -160,7 +161,7 @@ float Raspberry::readTemp(const uint8_t &pin, char unit, bool &error)
     if(setup)
     {
         if( presence(pin)==1 ) {
-            std::cerr << "No device on pin: " << pin << std::endl;
+            std::cerr << "No device on pin: " << unsigned(pin) << std::endl;
             error = true;
             return -3000;
         }
@@ -223,9 +224,9 @@ float Raspberry::readSecureTemp(const uint8_t &pin, char unit, int limit)
     // Check for errors. Try to read NUM_TMP_READ times
     while( _error && i<NUM_TMP_READ ) {
         _rtnValue = readTemp(pin, unit, _error);
-        if( _error ) {
+        if (_error) {
             bcm2835_delay(TIME_TMP_DELAY);
-            std::cerr << "Found error" << std::endl;
+            if (debug) {std::cerr << "Reading error" << std::endl;}
         }
         i++;
     }
@@ -235,7 +236,7 @@ float Raspberry::readSecureTemp(const uint8_t &pin, char unit, int limit)
            _rtnValue<(secureTemp[pin] - limit) )
     {
         _rtnValue = readTemp(pin, unit, _error);
-        std::cerr << "Temperature out of range" << std::endl;
+        if (debug) {std::cerr << "Temperature out of range" << std::endl;}
         if( i>= 5 ) break;
         i++;
     }
