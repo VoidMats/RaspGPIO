@@ -28,7 +28,6 @@ tags
 moc_*.cpp
 ui_*.h
 qrc_*.cpp
-Thumbs.db
 *.res
 *.rc
 /.qmake.cache
@@ -61,9 +60,6 @@ Thumbs.db
 # MinGW generated files
 *.Debug
 *.Release
-
-# Python byte code
-*.pyc
 
 # Binaries
 *.dll

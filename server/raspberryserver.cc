@@ -41,6 +41,7 @@ void RaspberryServer::start(const int& port)
     std::cout << "Raspberry Pi Debug - " << _debugGPIO << std::endl;
 
     _socket_fd = 0;
+    _port = port;
 
     // Create socket 
     _socket_fd = socket(AF_INET, SOCK_STREAM, 0);  // socket(domain, type, protocol)
@@ -63,7 +64,7 @@ void RaspberryServer::start(const int& port)
 
     // bind(int socket, const struct sockaddr *address, socklen_t address_len)
     int check_bind = bind(_socket_fd, reinterpret_cast<struct sockaddr*>(&_server_addr), sizeof(_server_addr));
-    if (check_bind < 0 ) {
+    if (check_bind < 0) {
         throw ServerException("Can't bind to IP or port");
     }
 
@@ -102,6 +103,16 @@ void RaspberryServer::start(const int& port)
 void RaspberryServer::closeConnection()
 {
     close(_socket_fd);
+}
+
+std::string RaspberryServer::getServerName()
+{
+    return _server_name;
+}
+
+int RaspberryServer::getServerPort()
+{
+    return _port;
 }
 
 void RaspberryServer::readSetup(std::string file_name)

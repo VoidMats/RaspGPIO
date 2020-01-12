@@ -109,7 +109,6 @@ private:
     // Variables for threads
     std::shared_ptr<std::vector<bool>> _ptr_lock; 
     std::mutex _mutex_lock;
-
 };
 
 #endif // RASPBERRY_H

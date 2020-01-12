@@ -15,40 +15,46 @@ int main(int argc, char *argv[])
 {
     std::cout << "*** GPIO Server ***" << std::endl;
     std::string raspberry_name{"test"};
-    bool raspberry_debug{true};
-    bool gpio_debug{true};
+    int raspberry_model{2};
+    bool raspberry_debug{false};
+    bool gpio_debug{false};
 
-    if (argc > 4) {
-        std::cerr << "To many arguments. Please use program as:" << std::endl;
-        std::cerr << "rasp_server [debug_Raspberry] [debug_Server] [name_server]" << std::endl;
+    if (argc > 5) {
+        printDefaulltArgv();
+    }
+    else if (argc == 5) {
+        raspberry_name = argv[1];
+        raspberry_model = std::stoi(argv[2]);
+        gpio_debug = setBoolFromArgv(argv[3]);
+        raspberry_debug = setBoolFromArgv(argv[4]);
     }
     else if (argc == 4) {
-        raspberry_debug = setBoolFromArgv(argv[1]);
-        gpio_debug = setBoolFromArgv(argv[2]);
-        raspberry_name = argv[3];
+        printDefaulltArgv();
     }
     else if (argc == 3) {
-        raspberry_debug = setBoolFromArgv(argv[1]);
-        gpio_debug = setBoolFromArgv(argv[2]);
-        std::cout << "Server name - test" << std::endl;
-    }
-    else if (argc == 2) {
+        raspberry_name = argv[1];
+        raspberry_model = std::stoi(argv[2]);
         std::string tmp;
-        std::cerr << "The server need to know its debug mode:" << std::endl;
+        std::cout << "The server need to know its debug mode: " << std::endl;
+        std::cin >> tmp;
+        raspberry_debug = setBoolFromArgv(tmp);
+        std::cout << "The Raspberry need to know its debug mode: " << std::endl;
         std::cin >> tmp;
         gpio_debug = setBoolFromArgv(tmp);
-        raspberry_debug = gpio_debug; 
+    }
+    else if (argc == 2) {
+        printDefaulltArgv();
     }
     else if( argc == 1 ) {
         std::cout << "Server is setup with default argument: " << std::endl;
-        std::cout << "Name - test / Debug Server - true / Debug GPIO - true" << std::endl;
+        std::cout << "Name - test / Raspberry Model - 2B / Debug Server - true / Debug GPIO - true" << std::endl;
     }
 
-    // TODO set mode to
-    RaspberryServer server(raspberry_name, 2, 
+    RaspberryServer server(raspberry_name, 
+        raspberry_model, 
         "setup.txt", 
         raspberry_debug, 
-        raspberry_debug
+        gpio_debug
     );
 
     try {
@@ -68,5 +74,11 @@ int main(int argc, char *argv[])
 
 bool setBoolFromArgv(std::string arg) {
     return ( arg == "true" || arg == "True" ) ? true : false;
+}
+
+void printDefaulltArgv() {
+    std::cout << "Wrong incomming arguments. Please use program as:" << std::endl;
+    std::cout << "rasp_server [name_server] [model_Raspberry] [debug_Raspberry] [debug_Server]" << std::endl;
+    std::cout << "rasp_server [name_server] [model_Raspberry]" << std::endl;
 }
 

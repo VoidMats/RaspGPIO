@@ -54,6 +54,8 @@ public:
 
     void start(const int& port);
     void closeConnection();
+    std::string getServerName();
+    int getServerPort();
 
 private:
     void readSetup(std::string file_name);
@@ -61,6 +63,7 @@ private:
     // Variables used for connection
     const int _backlog{5};
     int _socket_fd{0};
+    int _port{0};
     struct sockaddr_in _server_addr{};
     bool _debugServer;
     bool _debugGPIO;
