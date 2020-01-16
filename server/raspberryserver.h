@@ -1,7 +1,6 @@
 #ifndef RASPBERRYSERVER_H
 #define RASPBERRYSERVER_H
 // C++ include
-#include <exception>
 #include <iostream>
 #include <sys/types.h>
 #include <unistd.h>
@@ -22,23 +21,10 @@
 // My includes
 #include "raspberry.h"
 #include "connectclient.h"
+#include "binaryfile.h"
+#include "serverexception.h"
 
 using namespace std::chrono_literals;
-
-/* Server excpetion */
-class ServerException : std::exception 
-{
-public:
-    ServerException(const std::string& msg):
-        _msg{msg} {}
-
-    virtual const char* what() const noexcept override
-    {
-        return _msg.c_str();
-    }
-private:
-    std::string _msg;
-};
 
 /* Main server class which uses the ConnectClient class */
 class RaspberryServer
@@ -56,9 +42,11 @@ public:
     void closeConnection();
     std::string getServerName();
     int getServerPort();
+    std::string getFileName();
 
 private:
     void readSetup(std::string file_name);
+    void writeSetup(std::string file_name);
 
     // Variables used for connection
     const int _backlog{5};
@@ -72,6 +60,7 @@ private:
     std::string _server_name;
     std::shared_ptr<Raspberry> _ptr_gpio;
     std::mutex _mutex_gpio;
+    BinaryFile _file_bin;
 };
 
 #endif //RASPBERRYSERVER_H

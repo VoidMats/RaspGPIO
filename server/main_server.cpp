@@ -10,6 +10,9 @@
 #include <bcm2835.h>
 
 bool setBoolFromArgv(std::string arg);
+void printDefaulltArgv();
+void printHelp();
+void printVersion();
 
 int main(int argc, char *argv[])
 {
@@ -21,6 +24,7 @@ int main(int argc, char *argv[])
 
     if (argc > 5) {
         printDefaulltArgv();
+        return EXIT_SUCCESS;
     }
     else if (argc == 5) {
         raspberry_name = argv[1];
@@ -30,6 +34,7 @@ int main(int argc, char *argv[])
     }
     else if (argc == 4) {
         printDefaulltArgv();
+        return EXIT_SUCCESS;
     }
     else if (argc == 3) {
         raspberry_name = argv[1];
@@ -43,16 +48,27 @@ int main(int argc, char *argv[])
         gpio_debug = setBoolFromArgv(tmp);
     }
     else if (argc == 2) {
-        printDefaulltArgv();
+        std::string tmp{argv[1]};
+        if (tmp == "-h") {
+            printHelp();
+        }
+        else if (tmp == "-v") {
+            printVersion();
+        }
+        return EXIT_SUCCESS;
     }
     else if( argc == 1 ) {
         std::cout << "Server is setup with default argument: " << std::endl;
         std::cout << "Name - test / Raspberry Model - 2B / Debug Server - true / Debug GPIO - true" << std::endl;
     }
+    else {
+        printDefaulltArgv();
+        return EXIT_SUCCESS;
+    }
 
     RaspberryServer server(raspberry_name, 
         raspberry_model, 
-        "setup.txt", 
+        "setup.bin", 
         raspberry_debug, 
         gpio_debug
     );
@@ -80,5 +96,21 @@ void printDefaulltArgv() {
     std::cout << "Wrong incomming arguments. Please use program as:" << std::endl;
     std::cout << "rasp_server [name_server] [model_Raspberry] [debug_Raspberry] [debug_Server]" << std::endl;
     std::cout << "rasp_server [name_server] [model_Raspberry]" << std::endl;
+    std::cout << std::endl;
+    std::cout << "For more help type rasp_server -h" << std::endl;
 }
 
+void printHelp() {
+    std::cout << "This rasp_server a program for making your Raspberry Pi into GPIO server." << std::endl; 
+    std::cout << "rasp_server [name_server] [model_Raspberry] [debug_Raspberry] [debug_Server]" << std::endl;
+    std::cout << "rasp_server [name_server] [model_Raspberry]" << std::endl;
+    std::cout << "rasp_server [-option]" << std::endl;
+    std::cout << std::endl;
+    std::cout << "Options:" << std::endl;
+    std::cout << "  -h = For help. Print this information and exit" << std::endl;
+    std::cout << "  -v = For version. Diplay the version of the program and exit" << std::endl;
+}
+
+void printVersion() {
+    std::cout << "Raspberry GPIO Server, rasp_server ver" << std::endl;
+}

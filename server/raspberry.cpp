@@ -1,8 +1,14 @@
 #include "raspberry.h"
 
 Raspberry::Raspberry(int model, bool debug): 
-    model{model}, setup{false}, debug{debug}, errorCode{""},
-    secureTemp{}, pins{}, _ptr_lock{}, _mutex_lock{}
+    model{model}, 
+    setup{false}, 
+    debug{debug}, 
+    errorCode{""},
+    secureTemp{}, 
+    _pins{}, 
+    _ptr_lock{}, 
+    _mutex_lock{}
 {
     _ptr_lock = std::make_shared<std::vector<bool>>(std::vector<bool>(52, true));
     if( getuid() == 0) {
@@ -21,14 +27,16 @@ Raspberry::Raspberry(int model, bool debug):
  */
 Raspberry::~Raspberry()
 {
+    // TODO reset all outgoing signals. What todo with the signals on detached threads?
     bcm2835_close();
 }
 
 /* Variable mode is a enum 'bcm2835FunctionSelect' with values as:
- * BCM2835_GPIO_FSEL_INPT   0x00
- * BCM2835_GPIO_FSEL_OUTP   0x01
- * BCM2835_GPIO_FSEL_ALT0   0x04
- * BCM2835_GPIO_FSEL_ALT1   0x05
+ * NONE                     0x00
+ * BCM2835_GPIO_FSEL_INPT   0x01
+ * BCM2835_GPIO_FSEL_OUTP   0x02
+ * BCM2835_GPIO_FSEL_ALT0   0x03
+ * BCM2835_GPIO_FSEL_ALT1   0x04
  *
  * BCM2835_GPIO_FSEL_INPT   0x08 Added by this class to create secure temp
  * ...
@@ -46,13 +54,16 @@ void Raspberry::setRPI(std::vector<std::pair<uint8_t, PINMODE>> list)
         std::cout << unsigned(pin) << " " << PRINTMODE[mode] << std::endl;
         switch( mode )
         {
+        case PINMODE::NONE:
+            if( debug ) { std::cout << "Set pin: " << unsigned(pin) << " to NONE" << std::endl; }
+            break;
         case PINMODE::INPUT:
             bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_INPT);
-            if( debug ) {std::cout << "Set pin: " << pin << " to INPUT" << std::endl; }
+            if( debug ) { std::cout << "Set pin: " << unsigned(pin) << " to INPUT" << std::endl; }
             break;
         case PINMODE::OUTPUT:
             bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_OUTP);
-            if( debug ) {std::cout << "Set pin: " << pin << " to OUTPUT" << std::endl; }
+            if( debug ) { std::cout << "Set pin: " << unsigned(pin) << " to OUTPUT" << std::endl; }
             break;
         case PINMODE::TEMP:
             bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_INPT);
@@ -68,6 +79,7 @@ void Raspberry::setRPI(std::vector<std::pair<uint8_t, PINMODE>> list)
             bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_ALT1);
             break;
         default:
+            // TODO Error message
             break;
         }
     }
@@ -77,8 +89,17 @@ void Raspberry::setRPI(std::vector<std::pair<uint8_t, PINMODE>> list)
     for( ; it_lock!=_ptr_lock->end(); ++it_lock ) {
         *it_lock = false;
     }
-    // We are done set setup bool to true
+
+    // Copy the incomming list to private setting variable _pins
+    _pins = list;
+
+    // We are done. Set the secure setup bool to true
     setup = true;
+}
+
+std::vector<std::pair<uint8_t, PINMODE>> Raspberry::getRPI() const 
+{
+    return _pins;
 }
 
 void Raspberry::setOutput(uint8_t pin)

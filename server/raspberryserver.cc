@@ -3,7 +3,8 @@
 
 RaspberryServer::RaspberryServer(
     const std::string& name, 
-    int model, std::string file,
+    int model, 
+    std::string file,
     bool debug_server, 
     bool debug_gpio):
     _debugServer{debug_server},
@@ -11,14 +12,16 @@ RaspberryServer::RaspberryServer(
     _file_name{file}, 
     _server_name{name},
     _ptr_gpio{std::make_shared<Raspberry>(model, debug_gpio)},
-    _mutex_gpio{}
+    _mutex_gpio{},
+    _file_bin{file}
 {
     
 }
 
 RaspberryServer::~RaspberryServer()
 {
-
+    // Write setup to file
+    writeSetup(_file_name);
 }
 
 /* Create socket and bind value to socket. If all is OK listen on that socket.
@@ -100,24 +103,44 @@ void RaspberryServer::start(const int& port)
     }    
 }
 
-void RaspberryServer::closeConnection()
-{
+void RaspberryServer::closeConnection() {
     close(_socket_fd);
 }
 
-std::string RaspberryServer::getServerName()
-{
+std::string RaspberryServer::getServerName() {
     return _server_name;
 }
 
-int RaspberryServer::getServerPort()
-{
+int RaspberryServer::getServerPort() {
     return _port;
+}
+
+std::string RaspberryServer::getFileName() {
+    return _file_name;
 }
 
 void RaspberryServer::readSetup(std::string file_name)
 {
     std::vector<std::pair<uint8_t, PINMODE>> setup;
+    BinaryFile bin{file_name};
+    setup = bin.readSetup();
+
+    // Set input values to Raspberry class
+    _ptr_gpio->setRPI(setup);
+}
+
+void RaspberryServer::writeSetup(std::string file_name)
+{
+    std::vector<std::pair<uint8_t, PINMODE>> setup;
+    setup = _ptr_gpio->getRPI();
+
+    // Set input values to Binary file
+    BinaryFile bin{file_name};
+    bin.writeSetup(setup);
+}
+
+/*
+
     // Open file and read content
     std::ifstream file(file_name);
     if (file.is_open()) {
@@ -144,6 +167,6 @@ void RaspberryServer::readSetup(std::string file_name)
     }
     file.close();
     if (_debugServer) { std::cout << "Read setup file finished. Closing file" << std::endl; }
-    // Set input values to Raspberry class
-    _ptr_gpio->setRPI(setup);
-}
+
+
+*/

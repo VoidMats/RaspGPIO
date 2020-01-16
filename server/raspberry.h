@@ -15,16 +15,18 @@
 
 enum PINMODE
 {
-    INPUT = 0,
-    OUTPUT = 1,
-    TEMP = 2,
-    SECURE_TEMP = 3,
-    ANALOG_ALT0 = 4,
-    ANALOG_ALT1 = 5
+    NONE = 0,
+    INPUT = 1,
+    OUTPUT = 2,
+    TEMP = 3,
+    SECURE_TEMP = 4,
+    ANALOG_ALT0 = 5,
+    ANALOG_ALT1 = 6
 };
 
 const std::string PRINTMODE[] = 
 {
+    "NONE",
     "INPUT", 
     "OUTPUT", 
     "TEMP", 
@@ -33,21 +35,29 @@ const std::string PRINTMODE[] =
     "ANALOG_ALT1"
 };
 
+/*
 enum PIN_NUMBER
 {
     GPIO01 = 1,
     GPIO02 = 2,
     GPIO03 = 3,
     GPIO04 = 4,
-};
+}; */
 
 enum MODEL
 {
+    RASPBERRY_NONE = 0,    // This mean model has not been set 
     RASPBERRY_1 = 1,
     RASPBERRY_2A = 2,
     RASPBERRY_2B = 3,
-    RASPBERRY_3 = 4
+    RASPBERRY_3A = 4,
+    RASPBERRY_3B = 5,
+    RASPBERRY_4A = 6,
+    RASPBERRY_4B = 7
 };
+
+#define MAX_PINS 27
+
 
 /* The main class for controlling the Raspberry Pi with bcm2835 drivers.
  * The bcm2835 drivers has to be installed and compiled with the class.
@@ -55,15 +65,16 @@ enum MODEL
  * class which pins will be used.
  * 
  * Setup:  
- *      vector<pair<pin, mode>> */
+ *      vector<pair<uint8_t, PINMODE>> */
 class Raspberry
 {
 public:
     Raspberry(int model, bool debug);
     ~Raspberry();
 
-    // Function to set the Raspberry
+    // Function to set and get the Raspberry
     void setRPI(std::vector<std::pair<uint8_t, PINMODE>> list);
+    std::vector<std::pair<uint8_t, PINMODE>> getRPI() const;
     // Functions for get/send data
     void setOutput(uint8_t pin);
     void setOutputDelay(uint8_t pin, int ms);
@@ -105,7 +116,7 @@ private:
     bool debug;
     std::string errorCode;
     std::map<int, float> secureTemp; // Contain the previous Temp mesurement
-    std::vector<std::pair<uint8_t, std::string>> pins;
+    std::vector<std::pair<uint8_t, PINMODE>> _pins;
     // Variables for threads
     std::shared_ptr<std::vector<bool>> _ptr_lock; 
     std::mutex _mutex_lock;

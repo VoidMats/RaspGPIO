@@ -3,45 +3,65 @@
 // C++ include
 #include <iostream>
 #include <fstream>
-// My includes
-#include "raspberrypin.h"
+#include <vector>
+#include <string>
+// My include
+#include "raspberrysetup.h"
+#include "raspberry.h"
+#include "serverexception.h"
 
 class BinaryFile
 {
-
 public:
     BinaryFile(std::string filename): 
-        _filename(filename) {};
+        _file_name{filename}, _file{} {};
     
-    void writePin()
+    void writeSetup(std::vector<std::pair<uint8_t, PINMODE>> inSetup) 
     {
-        _file.open(_filename, std::ios::binary | std::ios::out);
+        // Open the file and write down the setup of the Raspberry
+        _file.open(_file_name, std::ios::binary | std::ios::out);
         if (!_file) {
-            std::cerr << "File error " << _filename << std::endl;
-            exit(1);
+            std::string msg{"BinaryFile::writeSetup - File error <" + _file_name + ">"};
+            throw ServerException(msg);
         }
-        RaspberryPin pin;
-        pin.write(_file);
+        // Instansiate the RasberrySetup and add the Raspberry.h setting -> write to file
+        RaspberrySetup setup;
+        setup.setSetup(inSetup);
+        setup.write(_file);
         _file.close();
-    }
-
-    RaspberryPin readPin()
+    };
+    
+    std::vector<std::pair<uint8_t, PINMODE>> readSetup()
     {
-        File.open(FileName, std::ios::binary | std::ios::in);
-        if(!File)
+        // open the file 
+        _file.open(_file_name, std::ios::binary | std::ios::in);
+        if(!_file)
         {
-            std::cerr<<"File error <"<<FileName<<">\n";
-            exit(1);
+            std::string msg{"BinaryFile::writeSetup - File error <" + _file_name + ">"};
+            throw ServerException(msg);
+            //std::cerr << "File error " << _file_name << std::endl;
+            //exit(EXIT_FAILURE);
         }
-        Triangle trig; // default values
-        trig.read(File);
-        File.close();
-        return trig;
-    }
+        RaspberrySetup setup; 
+        setup.read(_file);
+        _file.close();
+        // Return the setting from file
+        return setup.getSetup();
+    };
 
 private:
-    std::string _filename;
+    std::string _file_name;
     std::fstream _file;
 };
+
+/*
+void BinaryFile::writeSetup(std::vector<std::pair<uint8_t, PINMODE>> inSetup) {
+  
+}
+
+std::vector<std::pair<uint8_t, PINMODE>> BinaryFile::readSetup() {
+    
+}
+*/
 
 #endif

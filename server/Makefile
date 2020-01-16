@@ -13,7 +13,7 @@ install: rasp_server
 rasp_server: main_server.o raspberry.o raspberryserver.o connectclient.o
 	$(CXX) $(CXXFLAGS) main_server.o raspberry.o raspberryserver.o connectclient.o $(LIBS) -o rasp_server
 
-RaspberryServer.o: raspberryServer.cc raspberryserver.h 
+RaspberryServer.o: raspberryServer.cc raspberryserver.h binaryfile.h raspberrypin.h serverexception.h
 	$(CXX) -c $(CXXFLAGS) $(LIBS) raspberryserver.cc -o raspberryserver.o
 
 ConnectClient.o: connectclient.cc connectclient.h
